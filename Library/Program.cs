@@ -1,3 +1,6 @@
+using Library.Context;
+using Library.Entities;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -20,6 +23,18 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+string[] array = new string[3];
+int i = 0;
+using (MyDbContext db = new MyDbContext())
+{
+    var users = db.Books.ToList();
+    Console.WriteLine("Список объектов:");
+    foreach (Book u in users)
+    {
+        array[i] = ($"{u.Id}.{u.Title} - {u.ReleaseYear}");
+        i++;
+    }
+}
 
 app.MapGet("/weatherforecast", () =>
     {
@@ -35,7 +50,10 @@ app.MapGet("/weatherforecast", () =>
     })
     .WithName("GetWeatherForecast")
     .WithOpenApi();
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () =>
+{
+    return Results.Ok(array);
+});
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
