@@ -42,7 +42,7 @@
         </p>
         <p class="input">
             Фильтр по имени:<br/>
-            <input id="NameFilter" />
+            <input id="NameFilter" value="code"/>
             <button id="NameFilterBtn">Применить</button>
         </p>
         <p>
@@ -202,9 +202,13 @@
             })
         });
         if (response.ok === true) {
-            const books = await response.json();
-            const rows = document.querySelector("tbody");
-            books.forEach(book => rows.append(row(book)));
+            const book = await response.json();
+            document.querySelector("tbody").append(row(book));
+
+        }
+        else {
+            const error = await response.json();
+            console.log(error.statusCode);
         }
     });
     document.getElementById("resetBtn").addEventListener("click", () =>  reset());

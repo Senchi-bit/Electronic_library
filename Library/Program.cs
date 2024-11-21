@@ -91,11 +91,22 @@ app.MapPut("/api/books/nameFilter", (Book book) =>
 {
     try
     {
+        if (book.Title == "")
+        {
+            throw new Exception("Неверный запрос");
+        }
         MyDbContext db = new MyDbContext();
         var books = db.Books.Where(b => b.Title.ToLower().Contains(book.Title.ToLower())).ToList();
         if (books != null)
         {
-            return Results.Ok(books);
+            foreach (var OneBook in books)
+            {
+                if (OneBook.Title != "")
+                {
+                    return Results.Ok(OneBook);
+                }
+                throw new Exception("Not found");
+            }
         }
         else
         {
@@ -106,6 +117,8 @@ app.MapPut("/api/books/nameFilter", (Book book) =>
     {
         return Results.StatusCode(404);
     }
+
+    return Results.StatusCode(404);
 });
 app.MapPut("/api/books",async (Book bookData) =>
 {
