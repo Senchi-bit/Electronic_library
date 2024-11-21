@@ -1,6 +1,8 @@
-﻿namespace Library;
+﻿using Microsoft.AspNetCore.Mvc;
 
-public class BookApi
+namespace Library;
+
+public class BookApi : ControllerBase
 {
     
 }
