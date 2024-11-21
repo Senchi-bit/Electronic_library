@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Library</title>
+    <style>
+        tr{
+            margin: 0 10px;
+            justify-content: center;
+        }
+        td{
+            text-align: center;
+        }
+        .input{
+            display: inline-block;
+        }
+        .content_block{
+            display: inline-block;
+        }
+        table{
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+<div class="content_block">
+    <h2>Список Выставок</h2>
+    <div>
+        <input type="hidden" id="exhibitionId" />
+        <p class="input">
+            Название:<br/>
+            <input id="exhibitionName" />
+        </p>
+        <p class="input">
+            Год базирования:<br/>
+            <input id="exhibitionsYearBased" />
+        </p>
+        <p>
+            <button id="saveExhibitionBtn">Сохранить</button>
+            <button id="resetExhibitionBtn">Сбросить</button>
+        </p>
+
+    </div>
+    <table>
+        <thead><tr><th>id</th><th>Название</th><th>Год базирования</th><th>Книги</th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+<script>
+
+    //Книги
+    async function getBooks() {
+        const response = await fetch("/api/books", {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok === true) {
+            const books = await response.json();
+            const rows = document.querySelector("tbody");
+            books.forEach(book => rows.append(row(book)));
+        }
+    }
+    async function getBook(id) {
+        const response = await fetch(`/api/books/${id}`, {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            document.getElementById("bookId").value = book.id;
+            document.getElementById("bookName").value = book.title;
+            document.getElementById("bookReleasedYear").value = book.releaseYear;
+        }
+        else {
+            // если произошла ошибка, получаем сообщение об ошибке
+            const error = await response.json();
+            console.log(error.message); // и выводим его на консоль
+        }
+    }
+    // Добавление пользователя
+    async function createBook(bookName, bookReleaseYear) {
+
+        const response = await fetch("api/books", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                Title: bookName,
+                ReleaseYear: parseInt(bookReleaseYear, 10)
+            })
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            document.querySelector("tbody").append(row(book));
+
+        }
+        else {
+            const error = await response.json();
+            console.log(error.statusCode);
+        }
+    }
+    async function editBook(bookId, bookName, bookReleaseYear) {
+        const response = await fetch("api/books", {
+            method: "PUT",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                Id: bookId,
+                Title: bookName,
+                ReleaseYear: parseInt(bookReleaseYear, 10)
+            })
+        });
+        if (response.ok === true) {
+            const book = await response.json();
+            document.querySelector(`tr[data-rowid='${book.id}']`).replaceWith(row(book));
+        }
+        else {
+            const error = await response.json();
+            console.log(error.message);
+        }
+    }
+    // Удаление пользователя
+    async function deleteBook(id) {
+        const response = await fetch(`/api/books/${id}`, {
+            method: "DELETE",
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok === true) {
+            const user = await response.json();
+            document.querySelector(`tr[data-rowid='${user.id}']`).remove();
+        }
+        else {
+            const error = await response.json();
+            console.log(error.message);
+        }
+    }
+
+    // сброс данных формы после отправки
+    function reset() {
+        document.getElementById("bookId").value =
+            document.getElementById("bookName").value =
+                document.getElementById("bookReleasedYear").value = "";
+    }
+    // создание строки для таблицы
+    function row(book) {
+
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-rowid", book.id);
+
+        const Id = document.createElement("td");
+        Id.append(book.id);
+        tr.append(Id);
+
+        const nameTd = document.createElement("td");
+        nameTd.append(book.title);
+        tr.append(nameTd);
+
+        const ageTd = document.createElement("td");
+        ageTd.append(book.releaseYear);
+        tr.append(ageTd);
+
+        const author = document.createElement("td");
+        for(let i; i < book.authors.length; i++){
+            author.append(book.authors);
+        }
+        tr.append(author);
+
+        const linksTd = document.createElement("td");
+
+        const editLink = document.createElement("button");
+        editLink.append("Изменить");
+        editLink.addEventListener("click", async() => await getBook(book.id));
+        linksTd.append(editLink);
+
+        const removeLink = document.createElement("button");
+        removeLink.append("Удалить");
+        removeLink.addEventListener("click", async () => await deleteBook(book.id));
+
+        linksTd.append(removeLink);
+        tr.appendChild(linksTd);
+
+        return tr;
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", () =>  reset());
+
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+
+        const id = document.getElementById("bookId").value;
+        const title = document.getElementById("bookName").value;
+        const releaseYear = document.getElementById("bookReleasedYear").value;
+        if (id === "")
+            await createBook(title, releaseYear);
+        else
+            await editBook(id, title, releaseYear);
+        reset();
+    });
+
+    getBooks();
+</script>
+</body>
+</html>
