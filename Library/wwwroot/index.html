@@ -40,6 +40,11 @@
             Автор:<br/>
             <input id="Authors" />
         </p>
+        <p class="input">
+            Фильтр по имени:<br/>
+            <input id="NameFilter" />
+            <button id="NameFilterBtn">Применить</button>
+        </p>
         <p>
             <button id="saveBtn">Сохранить</button>
             <button id="resetBtn">Сбросить</button>
@@ -48,30 +53,6 @@
     </div>
     <table>
         <thead><tr><th>id</th><th>Название</th><th>Дата выпуска</th><th>Автор</th></tr></thead>
-        <tbody>
-        </tbody>
-    </table>
-</div>
-<div class="content_block">
-    <h2>Список Выставок</h2>
-    <div>
-        <input type="hidden" id="exhibitionId" />
-        <p class="input">
-            Название:<br/>
-            <input id="exhibitionName" />
-        </p>
-        <p class="input">
-            Год базирования:<br/>
-            <input id="exhibitionsYearBased" />
-        </p>
-        <p>
-            <button id="saveExhibitionBtn">Сохранить</button>
-            <button id="resetExhibitionBtn">Сбросить</button>
-        </p>
-
-    </div>
-    <table>
-        <thead><tr><th>id</th><th>Название</th><th>Год базирования</th><th>Книги</th></tr></thead>
         <tbody>
         </tbody>
     </table>
@@ -107,7 +88,7 @@
             console.log(error.message); // и выводим его на консоль
         }
     }
-    // Добавление пользователя
+    // Добавление книги
     async function createBook(bookName, bookReleaseYear) {
 
         const response = await fetch("api/books", {
@@ -125,7 +106,7 @@
         }
         else {
             const error = await response.json();
-            console.log(error.message);
+            console.log(error.statusCode);
         }
     }
     async function editBook(bookId, bookName, bookReleaseYear) {
@@ -147,7 +128,7 @@
             console.log(error.message);
         }
     }
-    // Удаление пользователя
+    // Удаление книги
     async function deleteBook(id) {
         const response = await fetch(`/api/books/${id}`, {
             method: "DELETE",
@@ -209,7 +190,23 @@
 
         return tr;
     }
-
+    document.getElementById("NameFilterBtn").addEventListener("click", async () => {
+        const nameFilter = document.getElementById("NameFilter").value;
+        const response = await fetch("api/books/nameFilter", {
+            method: "PUT",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                Id: 0,
+                Title: nameFilter,
+                ReleaseYear: 2000
+            })
+        });
+        if (response.ok === true) {
+            const books = await response.json();
+            const rows = document.querySelector("tbody");
+            books.forEach(book => rows.append(row(book)));
+        }
+    });
     document.getElementById("resetBtn").addEventListener("click", () =>  reset());
     
     document.getElementById("saveBtn").addEventListener("click", async () => {
