@@ -80,7 +80,7 @@
     
     //Книги
     async function getBooks() {
-        const response = await fetch("authors/api/books", {
+        const response = await fetch("/api/books", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Library</title>
+    <title>Authors</title>
     <style>
         tr{
             margin: 0 10px;
@@ -53,7 +53,7 @@
 
     //Авторы
     async function getAllAuthors() {
-        const response = await fetch("/api/authors", {
+        const response = await fetch("/authors/api/author", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -138,9 +138,8 @@
 
     // сброс данных формы после отправки
     function reset() {
-        document.getElementById("bookId").value =
-            document.getElementById("bookName").value =
-                document.getElementById("bookReleasedYear").value = "";
+        document.getElementById("authorId").value =
+            document.getElementById("authorName").value = "";
     }
     // создание строки для таблицы
     function row(author) {
@@ -174,17 +173,16 @@
         return tr;
     }
 
-    document.getElementById("resetBtn").addEventListener("click", () =>  reset());
+    document.getElementById("resetAuthorBtn").addEventListener("click", () =>  reset());
 
-    document.getElementById("saveBtn").addEventListener("click", async () => {
+    document.getElementById("saveAuthorBtn").addEventListener("click", async () => {
 
-        const id = document.getElementById("bookId").value;
-        const title = document.getElementById("bookName").value;
-        const releaseYear = document.getElementById("bookReleasedYear").value;
+        const id = document.getElementById("authorId").value;
+        const name = document.getElementById("authorName").value;
         if (id === "")
-            await createBook(title, releaseYear);
+            await createBook(name);
         else
-            await editBook(id, title, releaseYear);
+            await editBook(id, name);
         reset();
     });
     
