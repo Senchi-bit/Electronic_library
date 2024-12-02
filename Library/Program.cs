@@ -1,24 +1,43 @@
 using Library.Context;
 using Library.Entities;
-using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var app = builder.Build();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    app.UseExceptionHandler("/error");
+    app.UseStatusCodePages(async statusCodeContext =>
+    {
+        var response = statusCodeContext.HttpContext.Response;
+        var path = statusCodeContext.HttpContext.Request.Path;
+ 
+        response.ContentType = "text/plain; charset=UTF-8";
+        if (response.StatusCode == 403)
+        {
+            await response.WriteAsync($"Path: {path}. Access Denied ");
+        }
+        else if (response.StatusCode == 404)
+        {
+            await response.WriteAsync($"Resource {path} Not Found");
+        }
+    });
+}
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Configure the HTTP request pipeline.
 
 app.UseHttpsRedirection();
 
-
+// app.MapSwagger().RequireAuthorization();
 // app.Run((async (context) =>
 // {
 //     var response = context.Response;
@@ -39,7 +58,11 @@ app.UseHttpsRedirection();
 //         await response.SendFileAsync("html/authors.html");
 //     }
 // }));
-
+app.Map("/error", app => app.Run(async context =>
+{
+    context.Response.StatusCode = 500;
+    await context.Response.WriteAsync("Error 500!");
+}));
 app.MapGet("/api/books",async () =>
 {
     MyDbContext db = new MyDbContext();
@@ -59,32 +82,25 @@ app.MapGet("/api/books/{id}",(int id) =>
 });
 app.MapPost("/api/books", async (Book book) =>
 {
-    try
+
+    MyDbContext db = new MyDbContext();
+    var books = await db.Books.ToListAsync();
+    var lastBookId = books.Max(x => x.Id);
+    if (book != null)
     {
-        
-        MyDbContext db = new MyDbContext();
-        var books = await db.Books.ToListAsync();
-        var lastBookId = books.Max(x => x.Id);
-        if (book != null)
+        Book newBook = new Book()
         {
-            Book newBook = new Book()
-            {
-                Id = lastBookId + 1,
-                Title = book.Title,
-                ReleaseYear = book.ReleaseYear
-            };
-            await db.Books.AddAsync(newBook);
-            await db.SaveChangesAsync();
-            return Results.Ok(newBook);
-        }
-        else
-        {
-            throw new Exception("Некорректные данные");
-        }
+            Id = lastBookId + 1,
+            Title = book.Title,
+            ReleaseYear = book.ReleaseYear
+        };
+        await db.Books.AddAsync(newBook);
+        await db.SaveChangesAsync();
+        return Results.Ok(newBook);
     }
-    catch (Exception e)
+    else
     {
-        return Results.StatusCode(400);
+        throw new Exception("Некорректные данные");
     }
 });
 app.MapPut("/api/books/nameFilter", (Book book) =>
@@ -122,58 +138,47 @@ app.MapPut("/api/books/nameFilter", (Book book) =>
 });
 app.MapPut("/api/books",async (Book bookData) =>
 {
-    try
+
+    MyDbContext db = new MyDbContext();
+    var books =await db.Books.ToListAsync();
+    if (bookData != null)
     {
-        MyDbContext db = new MyDbContext();
-        var books =await db.Books.ToListAsync();
-        if (bookData != null)
+        var book = books.FirstOrDefault(u => u.Id == bookData.Id);
+        if (book != null && bookData.Title != "")
         {
-            var book = books.FirstOrDefault(u => u.Id == bookData.Id);
-            if (book != null)
-            {
-                book.ReleaseYear = bookData.ReleaseYear;
-                book.Title = bookData.Title;
-                db.Books.Update(book);
-                await db.SaveChangesAsync();
-                return Results.Ok(book);
-                
-            }
-            else
-            {
-                throw new Exception("Книга не найден");
-            }
+            book.ReleaseYear = bookData.ReleaseYear;
+            book.Title = bookData.Title;
+            db.Books.Update(book);
+            await db.SaveChangesAsync();
+            return Results.Ok(book);
+            
         }
         else
         {
-            throw new Exception("Некорректные данные");
+            return Results.StatusCode(404);
         }
     }
-    catch (Exception)
+    else
     {
-        return Results.StatusCode(400);
+        return Results.StatusCode(404);
     }
+    
 });
 app.MapDelete("/api/books/{id}", async (int id) =>
 {
-    try
+
+    MyDbContext db = new MyDbContext();
+    var books = await db.Books.ToListAsync();
+    var book = books.FirstOrDefault(b => b.Id == id);
+    if (book != null)
     {
-        MyDbContext db = new MyDbContext();
-        var books = await db.Books.ToListAsync();
-        var book = books.FirstOrDefault(b => b.Id == id);
-        if (book != null)
-        {
-            db.Books.Remove(book);
-            await db.SaveChangesAsync();
-            return Results.Ok(book);
-        }
-        else
-        {
-            throw new Exception("Not found");
-        }
+        db.Books.Remove(book);
+        await db.SaveChangesAsync();
+        return Results.Ok(book);
     }
-    catch (Exception e)
+    else
     {
-        return Results.StatusCode(404);
+        throw new Exception("Not found");
     }
 });
 app.Run();
