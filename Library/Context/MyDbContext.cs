@@ -24,16 +24,16 @@ public partial class MyDbContext : DbContext
 
     public virtual DbSet<ExhibitionsBook> ExhibitionsBooks { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        //File for connection string
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettingsdb.json")
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .Build();
- 
-        optionsBuilder.UseNpgsql(config.GetConnectionString("DefaultConnection"));
-    }
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     //File for connection string
+    //     var config = new ConfigurationBuilder()
+    //         .AddJsonFile("appsettingsdb.json")
+    //         .SetBasePath(Directory.GetCurrentDirectory())
+    //         .Build();
+    //
+    //     optionsBuilder.UseNpgsql(config.GetConnectionString("DefaultConnection"));
+    // }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
