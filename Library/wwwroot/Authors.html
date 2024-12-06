@@ -33,7 +33,7 @@
             <input id="authorName" />
         </p>
         <p class="input">
-            Автор:<br/>
+            Книги:<br/>
             <input id="Books" />
         </p>
         <p>
@@ -53,7 +53,7 @@
 
     //Авторы
     async function getAllAuthors() {
-        const response = await fetch("/authors/api/author", {
+        const response = await fetch("/api/authors", {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
@@ -64,15 +64,14 @@
         }
     }
     async function getBook(id) {
-        const response = await fetch(`/api/books/${id}`, {
+        const response = await fetch(`/api/authors/${id}`, {
             method: "GET",
             headers: { "Accept": "application/json" }
         });
         if (response.ok === true) {
-            const book = await response.json();
-            document.getElementById("bookId").value = book.id;
-            document.getElementById("bookName").value = book.title;
-            document.getElementById("bookReleasedYear").value = book.releaseYear;
+            const author = await response.json();
+            document.getElementById("bookId").value = author.id;
+            document.getElementById("authorId").value = author.title;
         }
         else {
             // если произошла ошибка, получаем сообщение об ошибке
