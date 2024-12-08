@@ -16,5 +16,5 @@ public partial class AuthorDto
     public int Id { get; set; }
 
     public string FullName { get; set; } = null!;
-    
+    public virtual ICollection<BookDto> Books { get; set; }
 }

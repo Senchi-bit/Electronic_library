@@ -21,19 +21,37 @@ namespace Library.Entities
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AuthorBook", b =>
+                {
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("authorId");
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("integer")
+                        .HasColumnName("bookId");
+
+                    b.HasKey("AuthorId", "BookId")
+                        .HasName("AuthorBook_pkey");
+
+                    b.HasIndex("BookId");
+
+                    b.ToTable("AuthorBook", (string)null);
+                });
+
             modelBuilder.Entity("Library.Entities.Author", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("fullName");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("Authors_pkey");
 
                     b.ToTable("Authors");
                 });
@@ -41,24 +59,25 @@ namespace Library.Entities
             modelBuilder.Entity("Library.Entities.Book", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuthorId")
+                    b.Property<int?>("ExhibitionId")
                         .HasColumnType("integer");
 
                     b.Property<int>("ReleaseYear")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("releaseYear");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("title");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("Books_pkey");
 
-                    b.HasIndex("AuthorId");
+                    b.HasIndex("ExhibitionId");
 
                     b.ToTable("Books");
                 });
@@ -66,51 +85,47 @@ namespace Library.Entities
             modelBuilder.Entity("Library.Entities.Exhibition", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("title");
 
                     b.Property<int>("YearBased")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("yearBased");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("exhibitions_pkey");
 
                     b.ToTable("Exhibitions");
                 });
 
-            modelBuilder.Entity("Library.Entities.ExhibitionsBook", b =>
+            modelBuilder.Entity("AuthorBook", b =>
                 {
-                    b.Property<int>("ExhibitionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("exhibitionId");
+                    b.HasOne("Library.Entities.Author", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .IsRequired()
+                        .HasConstraintName("authorId_fk");
 
-                    b.Property<int>("BookId")
-                        .HasColumnType("integer")
-                        .HasColumnName("bookId");
-
-                    b.HasKey("ExhibitionId", "BookId")
-                        .HasName("ExhibitionsBooks_pkey");
-
-                    b.ToTable("ExhibitionsBooks");
+                    b.HasOne("Library.Entities.Book", null)
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .IsRequired()
+                        .HasConstraintName("bookId_fk");
                 });
 
             modelBuilder.Entity("Library.Entities.Book", b =>
                 {
-                    b.HasOne("Library.Entities.Author", "Author")
+                    b.HasOne("Library.Entities.Exhibition", null)
                         .WithMany("Books")
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
+                        .HasForeignKey("ExhibitionId");
                 });
 
-            modelBuilder.Entity("Library.Entities.Author", b =>
+            modelBuilder.Entity("Library.Entities.Exhibition", b =>
                 {
                     b.Navigation("Books");
                 });
