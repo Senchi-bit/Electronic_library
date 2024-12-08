@@ -84,6 +84,7 @@ public partial class MyDbContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.Title).HasColumnName("title");
             entity.Property(e => e.YearBased).HasColumnName("yearBased");
+            //entity.HasOne(e => Exhibitions).WithMany(e => e.Books).HasForeignKey("ExhibitionId");
         });
         
 
