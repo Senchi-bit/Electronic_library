@@ -22,8 +22,6 @@ public partial class MyDbContext : DbContext
 
     public virtual DbSet<Exhibition> Exhibitions { get; set; }
 
-    public virtual DbSet<ExhibitionsBook> ExhibitionsBooks { get; set; }
-
     // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     // {
     //     //File for connection string
@@ -87,14 +85,7 @@ public partial class MyDbContext : DbContext
             entity.Property(e => e.Title).HasColumnName("title");
             entity.Property(e => e.YearBased).HasColumnName("yearBased");
         });
-
-        modelBuilder.Entity<ExhibitionsBook>(entity =>
-        {
-            entity.HasKey(e => new { e.ExhibitionId, e.BookId }).HasName("ExhibitionsBooks_pkey");
-
-            entity.Property(e => e.ExhibitionId).HasColumnName("exhibitionId");
-            entity.Property(e => e.BookId).HasColumnName("bookId");
-        });
+        
 
         OnModelCreatingPartial(modelBuilder);
     }
