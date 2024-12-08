@@ -26,36 +26,36 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseRouting();
-    app.UseExceptionHandler(exceptionHandlerApp =>
-    {
-        exceptionHandlerApp.Run(async context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-            // using static System.Net.Mime.MediaTypeNames;
-            context.Response.ContentType = MediaTypeNames.Text.Plain;
-
-            await context.Response.WriteAsync("An exception was thrown.");
-
-            var exceptionHandlerPathFeature =
-                context.Features.Get<IExceptionHandlerPathFeature>();
-
-            if (exceptionHandlerPathFeature?.Error is KeyNotFoundException)
-            {
-                await context.Response.WriteAsync(" The book was not found.");
-            }
-
-            if (exceptionHandlerPathFeature?.Error is Exception)
-            {
-                await context.Response.WriteAsync("Server error!");
-            }
-
-            if (exceptionHandlerPathFeature?.Path == "/")
-            {
-                await context.Response.WriteAsync(" Page: Home.");
-            }
-        });
-    });
+    // app.UseExceptionHandler(exceptionHandlerApp =>
+    // {
+    //     exceptionHandlerApp.Run(async context =>
+    //     {
+    //         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    //
+    //         // using static System.Net.Mime.MediaTypeNames;
+    //         context.Response.ContentType = MediaTypeNames.Text.Plain;
+    //
+    //         await context.Response.WriteAsync("An exception was thrown. ");
+    //
+    //         var exceptionHandlerPathFeature =
+    //             context.Features.Get<IExceptionHandlerPathFeature>();
+    //
+    //         if (exceptionHandlerPathFeature?.Error is KeyNotFoundException)
+    //         {
+    //             await context.Response.WriteAsync(" The object was not found.");
+    //         }
+    //
+    //         if (exceptionHandlerPathFeature?.Error is Exception)
+    //         {
+    //             await context.Response.WriteAsync("Server error!");
+    //         }
+    //
+    //         if (exceptionHandlerPathFeature?.Path == "/")
+    //         {
+    //             await context.Response.WriteAsync(" Page: Home.");
+    //         }
+    //     });
+    // });
     app.UseStatusCodePages(async statusCodeContext =>
     {
         var response = statusCodeContext.HttpContext.Response;
@@ -72,6 +72,8 @@ if (app.Environment.IsDevelopment())
         }
     });
 }
+
+
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -90,7 +92,7 @@ app.MapGet("/api/books",async (MyDbContext context) =>
 //</summary>
 app.MapGet("/api/books/{id}",(int id, MyDbContext context) =>
 {
-    var book = context.Books.ToList().FirstOrDefault(b => b.Id == id); 
+    var book = context.Books.ProjectToType<BookDto>().ToList().FirstOrDefault(b => b.Id == id); 
     if (book != null)
         return Results.Ok(book);
     else
@@ -102,11 +104,15 @@ app.MapGet("/api/books/{id}",(int id, MyDbContext context) =>
 //<summary>
 //API for add new book
 //</summary>
-app.MapPost("/api/books", async (Book book, MyDbContext db) =>
+app.MapPost("/api/books", async (BookPostDto book, MyDbContext db) =>
 {
     var books = await db.Books.ToListAsync();
-    var authors = await db.Authors.ToListAsync();
-    var author = authors.FirstOrDefault(b => b.Id == 1);
+    var authors =await db.Authors.Where(b => b.Id == book.AuthorId).ToListAsync();
+    if (authors == null)
+    {
+        throw new KeyNotFoundException("Author not found");
+    }
+    var author = authors.FirstOrDefault();
     var lastBookId = books.Count() != 0 ? books.Max(x => x.Id) : 1;
     if (book.Title != "" && book.ReleaseYear != null)
     {
@@ -114,7 +120,7 @@ app.MapPost("/api/books", async (Book book, MyDbContext db) =>
         {
             Id = lastBookId + 1,
             Title = book.Title,
-            ReleaseYear = book.ReleaseYear,
+            ReleaseYear = book.ReleaseYear
         };
         
         await db.Books.AddAsync(newBook);
@@ -131,15 +137,14 @@ app.MapPost("/api/books", async (Book book, MyDbContext db) =>
 //<summary>
 //Фильтрация книг по имени
 //</summary>
-app.MapPut("/api/books/nameFilter",(Book book) =>
+app.MapPut("/api/books/nameFilter",async (Book book, MyDbContext db) =>
 {
     if (book.Title == "")
     {
         throw new Exception("Неверный запрос");
     }
 
-    MyDbContext db = new MyDbContext();
-    var books = db.Books.Where(b => b.Title.ToLower().Contains(book.Title.ToLower())).ToList();
+    var books =await db.Books.Where(b => b.Title.ToLower().Contains(book.Title.ToLower())).ToListAsync();
     if (books != null)
     {
         return Results.Ok(books);
@@ -149,16 +154,29 @@ app.MapPut("/api/books/nameFilter",(Book book) =>
         throw new Exception("Not found");
     }
 });
+//WIP (Work in Progress)
+// app.MapGet("/api/books/authorIdFilter/{id}", (int id, MyDbContext db) =>
+// {
+//     var books = db.Books..ToList();
+//     if (books != null)
+//     {
+//         return Results.Ok(books);
+//     }
+//     else
+//     {
+//         throw new Exception("Not found");
+//     }
+// });
 
 //<summary>
 //API for update book
 //</summary>
-app.MapPut("/api/books",async (Book bookData, MyDbContext db) =>
+app.MapPut("/api/books",async (BookDto bookData, MyDbContext db) =>
 {
-    var books =await db.Books.ToListAsync();
+    var books =await db.Books.Where(u => u.Id == bookData.Id).ToListAsync();
     if (bookData != null)
     {
-        var book = books.FirstOrDefault(u => u.Id == bookData.Id);
+        var book = books.FirstOrDefault();
         if (book != null && bookData.Title != "")
         {
             book.ReleaseYear = bookData.ReleaseYear;
@@ -184,8 +202,8 @@ app.MapPut("/api/books",async (Book bookData, MyDbContext db) =>
 //</summary>
 app.MapDelete("/api/books/{id}", async (int id, MyDbContext db) =>
 {
-    var books = await db.Books.ToListAsync();
-    var book = books.FirstOrDefault(b => b.Id == id);
+    var books = await db.Books.Where(b => b.Id == id).ToListAsync();
+    var book = books.FirstOrDefault();
     if (book != null)
     {
         db.Books.Remove(book);
@@ -201,13 +219,14 @@ app.MapDelete("/api/books/{id}", async (int id, MyDbContext db) =>
 //<summary>
 //API for get all authors
 //</summary>
-app.MapGet("/api/authors", async (MyDbContext context) => await context.Authors.ToListAsync());
+app.MapGet("/api/authors", async (MyDbContext context) => 
+    await context.Authors.ProjectToType<AuthorDto>().ToListAsync());
 
 //<summary>
 //API for get author by id
 //</summary>
 app.MapGet("/api/authors/{id}", async (int id, MyDbContext context) => 
-    await context.Authors.FirstOrDefaultAsync(u => u.Id == id));
+    await context.Authors.ProjectToType<AuthorDto>().FirstOrDefaultAsync(u => u.Id == id));
 
 //<summary>
 //API for add author
@@ -238,9 +257,9 @@ app.MapPost("/api/authros", async (Author author, MyDbContext db) =>
 //</summary>
 app.MapPut("/api/authors", async (Author author, MyDbContext db) =>
 {
-    var authors = await db.Authors.ToListAsync();
+    var authors = await db.Authors.Where(u => u.Id == author.Id).ToListAsync();
     if (authors.Count == 0) throw new Exception();
-    var updateAuthor = authors.FirstOrDefault(u => u.Id == author.Id);
+    var updateAuthor = authors.FirstOrDefault();
     if (updateAuthor.FullName != "")
     {
         updateAuthor.FullName = author.FullName;   
@@ -258,25 +277,26 @@ app.MapPut("/api/authors", async (Author author, MyDbContext db) =>
 //</summary>
 app.MapDelete("/api/authros/{id}", async (int id, MyDbContext db) =>
 {
-    var authors = await db.Authors.ToListAsync();
-    authors.Remove(authors.FirstOrDefault(u => u.Id == id));
+    var authors = await db.Authors.Where(u => u.Id == id).ToListAsync();
+    db.Authors.Remove(authors.FirstOrDefault());
     await db.SaveChangesAsync();
     return Results.Ok(authors.FirstOrDefault(u => u.Id == id));
 });
 
-
-app.MapPut("/api/authors/nameFilter", async (Author author) =>
+//<summary>
+//Фильтрация авторов по имени
+//</summary>
+app.MapPut("/api/authors/nameFilter", async (Author author, MyDbContext db) =>
 {
     if (author.FullName == "")
     {
         throw new Exception("Неверный запрос");
     }
 
-    MyDbContext db = new MyDbContext();
-    var filtrderAuthors =  await db.Authors.Where(b => b.FullName.ToLower().Contains(author.FullName.ToLower())).ToListAsync();
-    if (filtrderAuthors != null)
+    var filtredAuthors =  await db.Authors.Where(b => b.FullName.ToLower().Contains(author.FullName.ToLower())).ToListAsync();
+    if (filtredAuthors != null)
     {
-        return Results.Ok(filtrderAuthors);
+        return Results.Ok(filtredAuthors);
     }
     else
     {
@@ -288,27 +308,28 @@ app.MapPut("/api/authors/nameFilter", async (Author author) =>
 //<summary>
 //API for get all exhibitions
 //</summary>
-app.MapGet("/api/exhibitions", async (MyDbContext db) => await db.Exhibitions.ToListAsync());
+app.MapGet("/api/exhibitions", async (MyDbContext db) => 
+    await db.Exhibitions.ProjectToType<ExhibitionDto>().ToListAsync());
 
 //<summary>
 //API for get exhibitions by id
 //</summary>
 app.MapGet("/api/exhibition/{id}", async (int id, MyDbContext db) => 
-    await db.Exhibitions.FirstOrDefaultAsync(u => u.Id == id));
+    await db.Exhibitions.ProjectToType<ExhibitionDto>().FirstOrDefaultAsync(u => u.Id == id));
 
-//<summary>
-//API for add exhibitions
-//</summary>
+///<summary>
+///API for add exhibitions
+///</summary>
 app.MapPost("/api/exhibition", async (Exhibition exhibition, MyDbContext db) =>
 {
     var exhibitions = await db.Exhibitions.ToListAsync();
-    int lastBookId = exhibitions.Count != 0 ? exhibitions.Max(x => x.Id) : 1;
+    var lastExhibitionId = exhibitions.Count != 0 ? exhibitions.Max(x => x.Id) : 1;
     if (exhibition.Title != "")
     {
         Exhibition newExhibition = new Exhibition();
         newExhibition.YearBased = exhibition.YearBased;
         newExhibition.Title = exhibition.Title;
-        newExhibition.Id = lastBookId;
+        newExhibition.Id = lastExhibitionId + 1 ;
         await db.Exhibitions.AddAsync(newExhibition);
         await db.SaveChangesAsync();
         return Results.Ok(newExhibition);
@@ -319,9 +340,50 @@ app.MapPost("/api/exhibition", async (Exhibition exhibition, MyDbContext db) =>
     }
 });
 
+//<summary>
+//<param name="id">id = id for exhibition</param>
+//</summary>
+app.MapPut("api/exhibition/addBook/{id}",async (int id, Book book, MyDbContext db) =>
+{
+    var books = await db.Books.Where(b => b.Id == book.Id).ToListAsync();
+    var exhibitions = await db.Exhibitions.Where(b => b.Id == id).ToListAsync();
+    var exhibition = exhibitions.FirstOrDefault();
+    var nowBook = books.FirstOrDefault();
+    if (exhibition.YearBased == nowBook.ReleaseYear)
+    {
+        exhibition.Books.Add(nowBook);
+        await db.SaveChangesAsync();
+    }
+    return Results.Ok(exhibition);
+});
+app.MapPut("/api/exhibition", async (ExhibitionDto exhibition, MyDbContext db) =>
+{
+    var exhibitions = await db.Exhibitions.Where(b => b.Id == exhibition.Id).ToListAsync();
+    var updateExhibition = exhibitions.FirstOrDefault();
+    if (updateExhibition.Title != "" && updateExhibition.YearBased == exhibition.YearBased)
+    {
+        updateExhibition.YearBased = exhibition.YearBased;
+        updateExhibition.Title = exhibition.Title;
+    }
+    
+    db.Exhibitions.Update(updateExhibition);
+    await db.SaveChangesAsync();
+    return Results.Ok(exhibition);
+});
+
+app.MapDelete("/api/exhibition/{id}", async (int id, MyDbContext db) =>
+{
+    var exhibition = await db.Exhibitions.Include(e => e.Books)
+        .Where(b => b.Id == id).FirstAsync();
+    //var exhibition = exhibitions.FirstOrDefault();
+    foreach (var book in exhibition.Books)
+    {
+        book.ExhibitionId = null;
+    }
+    db.Exhibitions.Remove(exhibition);
+    await db.SaveChangesAsync();
+});
 app.Run();
-
-
 
 
 
